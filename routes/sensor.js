@@ -1,5 +1,6 @@
 const express = require('express');
 const { LIMIT_PER_PAGE } = require('../configs/constants');
+const { calcPageCount } = require('../utils');
 const router = express.Router();
 
 
@@ -48,7 +49,7 @@ router.get('/sensor', (req, res) => {
     })
     .catch(err => {
       console.log(err);
-      res.status(500).send({ error: err });
+      res.status(500).send({ error: err.message });
     });
 });
 
@@ -60,7 +61,7 @@ router.get('/sensor', (req, res) => {
  */
 router.get('/sensor/:sensorId', (req, res) => {
   dbPool.getConnection()
-    .then(connection => {
+    .then(async connection => {
       const { sensorId } = req.params;
       const page = req.query.page || 1;
       
@@ -74,21 +75,31 @@ router.get('/sensor/:sensorId', (req, res) => {
         LIMIT ?,${LIMIT_PER_PAGE}; 
       `;
 
+      const countQuery = `
+        SELECT COUNT(*) AS count FROM sensors WHERE sensor_id=? ;
+      `;
+
       const skippedItems = (page - 1) * LIMIT_PER_PAGE;
 
-      const result = connection.execute(selectQuery, [sensorId, skippedItems]);
+      const result = await connection.execute(selectQuery, [sensorId, skippedItems]);
+      const countResult = await connection.execute(countQuery, [sensorId]);
+
       connection.release();
-      return result;
+      return {
+        data: result[0],
+        count: countResult[0] && countResult[0][0] && countResult[0][0].count
+      };
     })
     .then(result => {
-      const data = result[0];
+      const { data, count } = result;
       res.status(200).send({
-        data
+        data,
+        pageCount: calcPageCount(count, LIMIT_PER_PAGE)
       });
     })
     .catch(err => {
       console.log(err);
-      res.status(500).send({ error: err });
+      res.status(500).send({ error: err.message });
     });
 });
 
