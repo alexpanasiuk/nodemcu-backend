@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const http = require("http");
-const mysql = require("mysql2/promise");
+const mysql = require("mariadb");
 const path = require("path");
 
 const dbConnectConfig = require("./configs/db");
