@@ -39,7 +39,7 @@ router.get('/sensor', (req, res) => {
 
 
       const result = connection.execute(selectQuery);
-      connection.release();
+      connection.end();
       return result;
       
     })
@@ -87,7 +87,7 @@ router.get('/sensor/:sensorId', (req, res) => {
       const result = await connection.query(selectQuery);
       const countResult = await connection.query(countQuery);
 
-      connection.release();
+      connection.end();
       return {
         data: result,
         count: countResult[0] && countResult[0].count
@@ -117,11 +117,11 @@ router.post('/sensor/:sensorId', (req, res) => {
       const selectQuery = `
         INSERT INTO sensors (temp, humidity, date, sensor_id)
         VALUES(${connection.escape(temp)}, ${connection.escape(humidity)},
-        ${connection.escape(date)}, ${connection.escape(sensorId)});
+        ${connection.escape(new Date())}, ${connection.escape(sensorId)});
       `;
 
-      const result = connection.execute(selectQuery, [temp, humidity, new Date(), sensorId]);
-      connection.release();
+      const result = connection.query(selectQuery);
+      connection.end();
       return result;
     })
     .then(result => {
