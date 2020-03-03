@@ -28,15 +28,17 @@ router.get('/sensor', (req, res) => {
       const escapedSortDirection = sortDirection.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
       const sortColumn = req.query.sortColumn || 'date';
 
-      const selectQuery = `
-        SELECT * FROM sensors
-        ORDER BY ${connection.escapeId(`sensors.${sortColumn}`)} ${escapedSortDirection}
-        LIMIT ?,${LIMIT_PER_PAGE}; 
-      `;
 
       const skippedItems = (page - 1) * LIMIT_PER_PAGE;
 
-      const result = connection.execute(selectQuery, [skippedItems]);
+      const selectQuery = `
+        SELECT * FROM sensors
+        ORDER BY ${connection.escapeId(`sensors.${sortColumn}`)} ${escapedSortDirection}
+        LIMIT ${connection.escape(skippedItems)},${LIMIT_PER_PAGE}; 
+      `;
+
+
+      const result = connection.execute(selectQuery);
       connection.release();
       return result;
       
@@ -69,25 +71,26 @@ router.get('/sensor/:sensorId', (req, res) => {
       const escapedSortDirection = sortDirection.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
       const sortColumn = req.query.sortColumn || 'date';
 
+      const skippedItems = (page - 1) * LIMIT_PER_PAGE;
+
       const selectQuery = `
-        SELECT * FROM sensors WHERE sensor_id=?
-        ORDER BY ${connection.escapeId(`sensors.${sortColumn}`)} ${escapedSortDirection}
-        LIMIT ?,${LIMIT_PER_PAGE}; 
+        SELECT * FROM sensors WHERE sensor_id=${connection.escape(sensorId)}
+        ORDER BY ${connection.escapeId(sortColumn)} ${escapedSortDirection}
+        LIMIT ${connection.escape(skippedItems)},${LIMIT_PER_PAGE}; 
       `;
 
       const countQuery = `
-        SELECT COUNT(*) AS count FROM sensors WHERE sensor_id=? ;
+        SELECT COUNT(*) AS count FROM sensors WHERE sensor_id=${connection.escape(sensorId)};
       `;
 
-      const skippedItems = (page - 1) * LIMIT_PER_PAGE;
 
-      const result = await connection.execute(selectQuery, [sensorId, skippedItems]);
-      const countResult = await connection.execute(countQuery, [sensorId]);
+      const result = await connection.query(selectQuery);
+      const countResult = await connection.query(countQuery);
 
       connection.release();
       return {
-        data: result[0],
-        count: countResult[0] && countResult[0][0] && countResult[0][0].count
+        data: result,
+        count: countResult[0] && countResult[0].count
       };
     })
     .then(result => {
@@ -113,7 +116,8 @@ router.post('/sensor/:sensorId', (req, res) => {
 
       const selectQuery = `
         INSERT INTO sensors (temp, humidity, date, sensor_id)
-        VALUES(?, ?, ?, ?);
+        VALUES(${connection.escape(temp)}, ${connection.escape(humidity)},
+        ${connection.escape(date)}, ${connection.escape(sensorId)});
       `;
 
       const result = connection.execute(selectQuery, [temp, humidity, new Date(), sensorId]);

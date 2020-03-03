@@ -7,7 +7,7 @@ function calcPageCount(count, itemPerPage) {
   const intPageCount = parseInt(fullPageCount);
   const pagesCount = fullPageCount === intPageCount ? intPageCount : intPageCount + 1;
 
-  return pagesCount;
+  return pagesCount || 1;
 }
 
 module.exports = {
