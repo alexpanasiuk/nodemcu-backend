@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const http = require("http");
 const mysql = require("mysql2/promise");
+const path = require("path");
 
 const dbConnectConfig = require("./configs/db");
 
@@ -40,11 +41,12 @@ global.dbPool = dbPool;
 // Include routes
 app.use("/api", require("./routes/sensor"));
 
+// Include static files
+app.use(express.static(path.join(__dirname, "client/nodemcu-front/build")));
+
 // Setup a default catch-all route that sends back a welcome message in JSON format.
 app.get("*", (req, res) =>
-  res.status(200).send({
-    message: "Welcome to the beginning of nothingness."
-  })
+  res.sendFile(path.join(__dirname, "client/nodemcu-front/build", "index.html"))
 );
 
 const port = parseInt(process.env.PORT, 10) || 8000;
